@@ -1,0 +1,18 @@
+env: dev
+
+kafka:
+  bootstrap_servers: kafka:9092
+  topic: ad-events
+
+paths:
+  bronze: s3a://bronze/events/
+  silver: s3a://silver/events/
+  gold: s3a://gold/metrics/
+
+spark:
+  checkpoint: s3a://checkpoints/streaming/
+
+minio:
+  endpoint: http://minio:9000
+  access_key: minio
+  secret_key: minio123
