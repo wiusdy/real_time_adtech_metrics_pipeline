@@ -1,10 +1,12 @@
-import json
-import time
-import random
-from kafka import KafkaProducer
-from datetime import datetime
-from common.config import AppConfig
 import argparse
+import json
+import random
+import time
+from datetime import datetime
+
+from kafka import KafkaProducer
+
+from common.config import AppConfig
 
 
 class Producer:
@@ -17,7 +19,7 @@ class Producer:
 
         self.producer = KafkaProducer(
             bootstrap_servers=self.config.kafka.bootstrap_servers,
-            value_serializer=lambda v: json.dumps(v).encode("utf-8")
+            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
         )
 
         self.topic = self.config.kafka.topic
@@ -28,7 +30,7 @@ class Producer:
             "timestamp": datetime.utcnow().isoformat(),
             "campaign_id": random.randint(1, 5),
             "event_type": random.choice(self.event_types),
-            "price": round(random.uniform(0.01, 1.0), 4)
+            "price": round(random.uniform(0.01, 1.0), 4),
         }
 
     def send_event(self, event):

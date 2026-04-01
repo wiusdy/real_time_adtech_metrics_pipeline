@@ -10,13 +10,13 @@ on:
 
 jobs:
   ci:
-    name: Lint + Test (Python ${{ matrix.python-version }})
+    name: CI (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.11"]
 
     steps:
       # -------------------------
@@ -34,15 +34,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       # -------------------------
-      # CACHE (PIP)
+      # CACHE
       # -------------------------
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-
 
       # -------------------------
       # INSTALL
@@ -61,8 +59,8 @@ jobs:
       - name: Run isort
         run: isort --check-only .
 
-      - name: Run flake8
-        run: flake8 .
+      - name: Run Ruff
+        run: ruff check .
 
       # -------------------------
       # TESTS
@@ -70,9 +68,6 @@ jobs:
       - name: Run tests
         run: pytest
 
-  # =============================
-  # OPTIONAL: BUILD VALIDATION
-  # =============================
   docker-build:
     name: Docker Build Check
     runs-on: ubuntu-latest

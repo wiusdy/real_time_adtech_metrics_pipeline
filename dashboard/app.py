@@ -1,7 +1,7 @@
 import streamlit as st
 from pyspark.sql import SparkSession
+
 from common.config import AppConfig
-import pandas as pd
 
 
 class Dashboard:
@@ -14,9 +14,7 @@ class Dashboard:
         self.spark = self._create_spark_session()
 
     def _create_spark_session(self):
-        return SparkSession.builder \
-            .appName("Dashboard") \
-            .getOrCreate()
+        return SparkSession.builder.appName("Dashboard").getOrCreate()
 
     def load_data(self):
         """Loads Gold layer data."""
@@ -66,9 +64,7 @@ class Dashboard:
 
             df_sorted = df.sort_values("total_revenue", ascending=False)
 
-            st.bar_chart(
-                df_sorted.set_index("campaign_id")["total_revenue"]
-            )
+            st.bar_chart(df_sorted.set_index("campaign_id")["total_revenue"])
 
         except Exception as e:
             st.error(f"Error loading data: {e}")

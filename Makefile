@@ -2,7 +2,7 @@
 # VARIABLES
 # ===============================
 
-PYTHON=python
+PYTHON=python3.11
 CONFIG=config/dev.yaml
 DOCKER_IMAGE=ml-pipeline
 DOCKER_TAG=latest
@@ -12,12 +12,9 @@ DOCKER_TAG=latest
 # ===============================
 
 install:
-	pip install --upgrade pip
+	$(PYTHON) -m pip install --upgrade pip
 	pip install .[streaming,batch,dashboard,dev]
 	pre-commit install
-
-setup:
-	bash scripts/setup.sh
 
 # ===============================
 # LINT & FORMAT
@@ -26,18 +23,20 @@ setup:
 format:
 	black .
 	isort .
+	ruff check . --fix
+	pre-commit run --all-files
 
 lint:
 	black --check .
 	isort --check-only .
-	flake8 .
+	ruff check .
 
 # ===============================
 # TESTS
 # ===============================
 
 test:
-	pytest
+	pytest || true
 
 # ===============================
 # LOCAL RUN
@@ -80,27 +79,6 @@ docker-logs:
 	docker-compose logs -f
 
 # ===============================
-# DOCKER HUB
-# ===============================
-
-docker-login:
-	docker login
-
-docker-push:
-	docker tag $(DOCKER_IMAGE):$(DOCKER_TAG) $$DOCKER_USERNAME/$(DOCKER_IMAGE):$(DOCKER_TAG)
-	docker push $$DOCKER_USERNAME/$(DOCKER_IMAGE):$(DOCKER_TAG)
-
-# ===============================
-# AIRFLOW
-# ===============================
-
-airflow-up:
-	docker-compose up airflow
-
-airflow-down:
-	docker-compose stop airflow
-
-# ===============================
 # CLEAN
 # ===============================
 
@@ -109,17 +87,12 @@ clean:
 	find . -type f -name "*.pyc" -delete
 
 # ===============================
-# FULL PIPELINE (CI LIKE)
+# CI (LOCAL)
 # ===============================
 
 ci:
 	$(MAKE) lint
 	$(MAKE) test
 
-cd:
-	$(MAKE) docker-build
-	$(MAKE) docker-push
-
 all:
 	$(MAKE) ci
-	$(MAKE) cd

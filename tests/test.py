@@ -1,12 +1,12 @@
-from producer.producer import Producer
 from common.config import AppConfig
+from producer.producer import Producer
 
 
 def test_generate_event():
     config = AppConfig(
         kafka={"bootstrap_servers": "localhost:9092", "topic": "test"},
         paths={"bronze": "", "silver": "", "gold": "", "checkpoint": ""},
-        streaming={"watermark": "1 minute", "window": "1 minute"}
+        streaming={"watermark": "1 minute", "window": "1 minute"},
     )
 
     producer = Producer(config)

@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 
 
 class Logger:
@@ -11,8 +11,5 @@ class Logger:
         self.logger.addHandler(handler)
 
     def info(self, message: str, **kwargs):
-        log = {
-            "message": message,
-            **kwargs
-        }
+        log = {"message": message, **kwargs}
         self.logger.info(json.dumps(log))

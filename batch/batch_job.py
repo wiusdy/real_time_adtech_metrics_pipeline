@@ -1,6 +1,9 @@
 import argparse
+
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import sum as _sum, count
+from pyspark.sql.functions import count
+from pyspark.sql.functions import sum as _sum
+
 from common.config import AppConfig
 from common.logger import Logger
 
@@ -12,13 +15,14 @@ class BatchJob:
         self.spark = self._create_spark_session()
 
     def _create_spark_session(self):
-        return SparkSession.builder \
-            .appName("BatchJob") \
-            .config("spark.hadoop.fs.s3a.endpoint", self.config.minio.endpoint) \
-            .config("spark.hadoop.fs.s3a.access.key", self.config.minio.access_key) \
-            .config("spark.hadoop.fs.s3a.secret.key", self.config.minio.secret_key) \
-            .config("spark.hadoop.fs.s3a.path.style.access", "true") \
+        return (
+            SparkSession.builder.appName("BatchJob")
+            .config("spark.hadoop.fs.s3a.endpoint", self.config.minio.endpoint)
+            .config("spark.hadoop.fs.s3a.access.key", self.config.minio.access_key)
+            .config("spark.hadoop.fs.s3a.secret.key", self.config.minio.secret_key)
+            .config("spark.hadoop.fs.s3a.path.style.access", "true")
             .getOrCreate()
+        )
 
     def run(self):
         self.logger.info("Starting batch job")
@@ -26,8 +30,7 @@ class BatchJob:
         df = self.spark.read.parquet(self.config.paths.silver)
 
         agg_df = df.groupBy("campaign_id").agg(
-            _sum("price").alias("total_revenue"),
-            count("*").alias("total_events")
+            _sum("price").alias("total_revenue"), count("*").alias("total_events")
         )
 
         agg_df.write.mode("overwrite").parquet(self.config.paths.gold)
