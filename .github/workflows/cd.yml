@@ -12,13 +12,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Deploy via SSH
-      - name: Deploy to EC2
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v0.1.9
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key: |
+            ${{ secrets.EC2_SSH_KEY }}
           script: |
             chmod +x ~/deploy/deploy.sh
-            ~/deploy/deploy.sh ${{ github.sha }} ${{ secrets.ECR_REGISTRY }}
+            ~/deploy/deploy.sh ${{ github.sha }} ${GITHUB_REF_NAME}
