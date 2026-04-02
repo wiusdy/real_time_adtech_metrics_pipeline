@@ -68,6 +68,23 @@ jobs:
       - name: Run tests
         run: pytest
 
+      # -------------------------
+      # BUILD PACKAGE 📦
+      # -------------------------
+      - name: Build package
+        run: |
+          pip install build
+          python -m build
+
+      # -------------------------
+      # UPLOAD ARTIFACT 📤
+      # -------------------------
+      - name: Upload Python artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: dist/
+
   docker-build:
     name: Docker Build Check
     runs-on: ubuntu-latest
@@ -77,5 +94,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # -------------------------
+      # BUILD IMAGE 🐳
+      # -------------------------
       - name: Build Docker Image
         run: docker build -t ml-pipeline:test .
+
+      # -------------------------
+      # SAVE IMAGE (OPCIONAL)
+      # -------------------------
+      - name: Save Docker image
+        run: docker save ml-pipeline:test | gzip > pipeline.tar.gz
+
+      # -------------------------
+      # UPLOAD DOCKER ARTIFACT
+      # -------------------------
+      - name: Upload Docker artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: pipeline.tar.gz
