@@ -112,5 +112,5 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            chmod +x ~/ml-pipeline/deploy.sh
-            ~/ml-pipeline/deploy.sh ${{ github.sha }} ${{ secrets.ECR_REGISTRY }}
+            chmod +x ~/ml-pipeline/deploy/deploy.sh
+            ~/ml-pipeline/deploy/deploy.sh ${{ github.sha }} ${{ secrets.ECR_REGISTRY }}
