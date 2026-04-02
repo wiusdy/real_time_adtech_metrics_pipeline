@@ -1,6 +1,7 @@
 import json
 import random
 import time
+from datetime import datetime
 
 from kafka import KafkaProducer
 
@@ -19,8 +20,9 @@ class Producer:
 
     def generate_event(self):
         return {
-            "user_id": random.randint(1, 10),
+            "user_id": 10,
             "value": random.random(),
+            "timestamp": datetime.utcnow().isoformat(),  # '2026-04-02T13:45:12.123456'
         }
 
     def run(self, interval=1):
