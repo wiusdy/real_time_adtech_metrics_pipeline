@@ -1,4 +1,4 @@
-name: CD - Deploy EC2
+name: CD - Deploy to EC2
 
 on:
   push:
@@ -7,33 +7,18 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      # Checkout do repo
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Deploy via SSH
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.9
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-
           script: |
-            IMAGE=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ml-pipeline:${{ github.sha }}
-
-            echo "Deploying $IMAGE"
-
-            # Login no ECR
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-            docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-
-            # Pull nova imagem
-            docker pull $IMAGE
-
-            # Stop antigo
-            docker stop pipeline || true
-            docker rm pipeline || true
-
-            # Start novo container
-            docker run -d \
-              --name pipeline \
-              -p 8000:8000 \
-              $IMAGE
+            chmod +x ~/deploy/deploy.sh
+            ~/deploy/deploy.sh ${{ github.sha }} ${{ secrets.ECR_REGISTRY }}
