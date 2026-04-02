@@ -55,7 +55,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ml-pipeline:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ secrets.ECR_REGISTRY }}/ml-pipeline:${{ github.sha }}
