@@ -87,6 +87,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test SSH connection
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "SSH OK!"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.9
         with:
