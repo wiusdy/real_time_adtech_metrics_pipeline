@@ -50,7 +50,7 @@ jobs:
           aws ecr create-repository --repository-name ml-pipeline
 
       # Build & Push
-      - name: Build & Push Docker
+      - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
