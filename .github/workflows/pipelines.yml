@@ -1,59 +1,78 @@
-name: Pipeline CI/CD
+name: CI & CD Pipeline
 
+# Define os eventos que disparam o workflow
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main"]   # CI para PRs direcionados à main
   push:
-    branches: ["main"]
+    branches: ["main"]   # CI + CD para pushes diretos na main
 
 jobs:
-  # -------------------------
-  # CI - roda para PRs
-  # -------------------------
   ci:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+
     steps:
+      # -------------------------
+      # Checkout
+      # -------------------------
       - uses: actions/checkout@v4
 
+      # -------------------------
+      # Python setup
+      # -------------------------
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # -------------------------
+      # Install dependencies
+      # -------------------------
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -e .[streaming,batch,dashboard,dev]
 
+      # -------------------------
+      # Lint + Tests
+      # -------------------------
       - name: Lint + Test
         run: |
           black --check .
           ruff check .
           pytest
 
-  # -------------------------
-  # Docker Build & Push - roda para PRs
-  # -------------------------
   docker-build-push:
     runs-on: ubuntu-latest
     needs: ci
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'push'   # Só roda no push para main
     steps:
       - uses: actions/checkout@v4
 
+      # -------------------------
+      # AWS authentication
+      # -------------------------
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # -------------------------
+      # Login to ECR
+      # -------------------------
       - uses: aws-actions/amazon-ecr-login@v2
 
+      # -------------------------
+      # Ensure repository exists
+      # -------------------------
       - name: Ensure ECR repo
         run: |
           aws ecr describe-repositories --repository-names smartgoal/real-time-ad-tech || \
           aws ecr create-repository --repository-name smartgoal/real-time-ad-tech
 
+      # -------------------------
+      # Build & Push Docker image
+      # -------------------------
       - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
@@ -61,13 +80,10 @@ jobs:
           push: true
           tags: ${{ secrets.ECR_REGISTRY }}:${{ github.sha }}
 
-  # -------------------------
-  # CD - Deploy via SSH
-  # -------------------------
   cd-deploy:
+    needs: docker-build-push
     runs-on: ubuntu-latest
-    needs: [ci, docker-build-push]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push'  # Só roda no push para main
     steps:
       - uses: actions/checkout@v4
 
@@ -76,8 +92,7 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key: |
-            ${{ secrets.EC2_SSH_KEY }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             chmod +x ~/deploy/deploy.sh
             ~/deploy/deploy.sh ${{ github.sha }} ${GITHUB_REF_NAME}
