@@ -19,7 +19,7 @@ jobs:
 
       - name: Install deps
         run: |
-          pip install .[dev]
+          pip install -e .[streaming,batch,dashboard,dev]
 
       - name: Lint + Test
         run: |

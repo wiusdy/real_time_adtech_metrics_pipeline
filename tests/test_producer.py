@@ -4,9 +4,9 @@ from common.config import AppConfig
 from producer.producer import Producer
 
 
-@patch("producer.producer.KafkaProducer")  # 👈 mocka aqui
+@patch("producer.producer.KafkaProducer")
 def test_generate_event(mock_kafka):
-    mock_kafka.return_value = MagicMock()  # evita conexão real
+    mock_kafka.return_value = MagicMock()
 
     config = AppConfig(
         env="test",
