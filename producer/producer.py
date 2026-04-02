@@ -1,4 +1,3 @@
-import argparse
 import json
 import random
 import time
@@ -6,61 +5,26 @@ from datetime import datetime
 
 from kafka import KafkaProducer
 
-from common.config import AppConfig
-
 
 class Producer:
-    """
-    Kafka producer that generates random ad events.
-    """
-
-    def __init__(self, config: AppConfig):
+    def __init__(self, config, kafka_producer=None):
         self.config = config
-
-        self.producer = KafkaProducer(
-            bootstrap_servers=self.config.kafka.bootstrap_servers,
+        self.producer = kafka_producer or KafkaProducer(
+            bootstrap_servers=config.kafka.bootstrap_servers,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
         )
-
-        self.topic = self.config.kafka.topic
-        self.event_types = ["impression", "click"]
 
     def generate_event(self):
         return {
             "timestamp": datetime.utcnow().isoformat(),
-            "campaign_id": random.randint(1, 5),
-            "event_type": random.choice(self.event_types),
-            "price": round(random.uniform(0.01, 1.0), 4),
+            "campaign_id": random.randint(1, 10),
+            "event_type": random.choice(["click", "impression"]),
+            "price": round(random.random() * 10, 2),
         }
-
-    def send_event(self, event):
-        retries = 3
-
-        for attempt in range(retries):
-            try:
-                self.producer.send(self.topic, event)
-                print(f"Sent: {event}")
-                return
-            except Exception as e:
-                print(f"Error (attempt {attempt+1}): {e}")
-                time.sleep(1)
-
-        print("Failed to send event.")
 
     def run(self):
         while True:
             event = self.generate_event()
-            self.send_event(event)
+            self.producer.send(self.config.kafka.topic, event)
+            print(f"Sent: {event}")
             time.sleep(1)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", required=True)
-
-    args = parser.parse_args()
-
-    config = AppConfig.from_yaml(args.config)
-
-    producer = Producer(config)
-    producer.run()

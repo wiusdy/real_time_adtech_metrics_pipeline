@@ -43,16 +43,13 @@ test:
 # ===============================
 
 run-producer:
-	$(PYTHON) producer/producer.py
+	python3.11 producer/producer.py --config config/dev.yaml
 
 run-streaming:
-	$(PYTHON) streaming/streaming_job.py --config $(CONFIG)
+	PYTHONPATH=. python3.11 streaming/streaming_job.py
 
 run-batch:
-	$(PYTHON) batch/batch_job.py --config $(CONFIG)
-
-run-dashboard:
-	streamlit run dashboard/app.py -- --config $(CONFIG)
+	python3.11 batch/batch_job.py --config config/dev.yaml
 
 run-pipeline:
 	$(MAKE) run-streaming & \

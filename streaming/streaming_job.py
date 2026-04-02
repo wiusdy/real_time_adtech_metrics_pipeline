@@ -1,32 +1,22 @@
-import argparse
-
-from pyspark.sql import SparkSession
+import yaml
 from pyspark.sql.functions import col, from_json
 from pyspark.sql.types import DoubleType, IntegerType, StringType, StructType
 
 from common.config import AppConfig
-from common.logger import Logger
+from common.spark import create_spark
+
+
+def load_config(path):
+    with open(path) as f:
+        return AppConfig(**yaml.safe_load(f))
 
 
 class StreamingJob:
-    def __init__(self, config: AppConfig):
+    def __init__(self, config):
         self.config = config
-        self.logger = Logger("streaming")
-        self.spark = self._create_spark_session()
-
-    def _create_spark_session(self):
-        return (
-            SparkSession.builder.appName("StreamingJob")
-            .config("spark.hadoop.fs.s3a.endpoint", self.config.minio.endpoint)
-            .config("spark.hadoop.fs.s3a.access.key", self.config.minio.access_key)
-            .config("spark.hadoop.fs.s3a.secret.key", self.config.minio.secret_key)
-            .config("spark.hadoop.fs.s3a.path.style.access", "true")
-            .getOrCreate()
-        )
+        self.spark = create_spark(config.spark.app_name, config.minio)
 
     def run(self):
-        self.logger.info("Starting streaming job")
-
         schema = (
             StructType()
             .add("timestamp", StringType())
@@ -42,28 +32,22 @@ class StreamingJob:
             .load()
         )
 
-        parsed_df = (
+        parsed = (
             df.selectExpr("CAST(value AS STRING)")
             .select(from_json(col("value"), schema).alias("data"))
             .select("data.*")
         )
 
-        query = (
-            parsed_df.writeStream.format("parquet")
+        (
+            parsed.writeStream.format("parquet")
             .option("path", self.config.paths.silver)
             .option("checkpointLocation", self.config.spark.checkpoint)
             .outputMode("append")
             .start()
+            .awaitTermination()
         )
-
-        query.awaitTermination()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", required=True)
-    args = parser.parse_args()
-
-    config = AppConfig.from_yaml(args.config)
-    job = StreamingJob(config)
-    job.run()
+    config = load_config("config/dev.yaml")
+    StreamingJob(config).run()

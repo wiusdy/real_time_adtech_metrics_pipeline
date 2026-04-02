@@ -1,18 +1,24 @@
 env: dev
 
 kafka:
-  bootstrap_servers: kafka:9092
-  topic: ad-events
+  bootstrap_servers: "localhost:9092"
+  topic: "events"
 
 paths:
-  bronze: s3a://bronze/events/
-  silver: s3a://silver/events/
-  gold: s3a://gold/metrics/
+  bronze: ""
+  silver: "s3a://silver/events/"
+  gold: "s3a://gold/results/"
+  checkpoint: "/tmp/checkpoint"
+
+streaming:
+  watermark: "1 minute"
+  window: "1 minute"
 
 spark:
-  checkpoint: s3a://checkpoints/streaming/
+  app_name: "adtech-pipeline"
+  checkpoint: "/tmp/checkpoint"
 
 minio:
-  endpoint: http://minio:9000
-  access_key: minio
-  secret_key: minio123
+  endpoint: "http://localhost:9000"
+  access_key: "minio"
+  secret_key: "minio123"
