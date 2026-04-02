@@ -1,116 +1,61 @@
-name: CI Pipeline
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+name: CI - Build & Push Image
 
 on:
   pull_request:
     branches: ["main"]
-    types: [opened, synchronize, reopened]
+  push:
+    branches: ["main"]
 
 jobs:
   ci:
-    name: CI (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11"]
-
     steps:
-      # -------------------------
-      # CHECKOUT
-      # -------------------------
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # -------------------------
-      # PYTHON SETUP
-      # -------------------------
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
 
-      # -------------------------
-      # CACHE
-      # -------------------------
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
-
-      # -------------------------
-      # INSTALL
-      # -------------------------
-      - name: Install dependencies
+      - name: Install deps
         run: |
-          python -m pip install --upgrade pip
-          pip install .[streaming,batch,dashboard,dev]
+          pip install .[dev]
 
-      # -------------------------
-      # LINT
-      # -------------------------
-      - name: Run Black
-        run: black --check .
-
-      - name: Run isort
-        run: isort --check-only .
-
-      - name: Run Ruff
-        run: ruff check .
-
-      # -------------------------
-      # TESTS
-      # -------------------------
-      - name: Run tests
-        run: pytest
-
-      # -------------------------
-      # BUILD PACKAGE 📦
-      # -------------------------
-      - name: Build package
+      - name: Lint + Test
         run: |
-          pip install build
-          python -m build
+          black --check .
+          ruff check .
+          pytest
 
-      # -------------------------
-      # UPLOAD ARTIFACT 📤
-      # -------------------------
-      - name: Upload Python artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-package
-          path: dist/
-
-  docker-build:
-    name: Docker Build Check
+  docker-build-push:
     runs-on: ubuntu-latest
     needs: ci
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # -------------------------
-      # BUILD IMAGE 🐳
-      # -------------------------
-      - name: Build Docker Image
-        run: docker build -t ml-pipeline:test .
-
-      # -------------------------
-      # SAVE IMAGE (OPCIONAL)
-      # -------------------------
-      - name: Save Docker image
-        run: docker save ml-pipeline:test | gzip > pipeline.tar.gz
-
-      # -------------------------
-      # UPLOAD DOCKER ARTIFACT
-      # -------------------------
-      - name: Upload Docker artifact
-        uses: actions/upload-artifact@v4
+      # AWS auth
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          name: docker-image
-          path: pipeline.tar.gz
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      # Ensure repo exists
+      - name: Ensure ECR repo
+        run: |
+          aws ecr describe-repositories --repository-names ml-pipeline || \
+          aws ecr create-repository --repository-name ml-pipeline
+
+      # Build & Push
+      - name: Build & Push Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ml-pipeline:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

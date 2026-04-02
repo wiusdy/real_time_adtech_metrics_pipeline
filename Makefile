@@ -42,18 +42,27 @@ test:
 # LOCAL RUN
 # ===============================
 
-run-producer:
-	python3.11 producer/producer.py --config config/dev.yaml
+up:
+	docker-compose up -d
+
+down:
+	docker-compose down
+
+producer:
+	python3.11 producer.py
 
 run-streaming:
-	PYTHONPATH=. python3.11 streaming/streaming_job.py
+	PYTHONPATH=. python3.11 -m streaming.streaming_job
+
+run-batch:
+	PYTHONPATH=. python3.11 -m batch.batch_job
 
 run-batch:
 	python3.11 batch/batch_job.py --config config/dev.yaml
 
 run-pipeline:
-	$(MAKE) run-streaming & \
-	sleep 5 && \
+	$(MAKE) run-streaming
+	sleep 5
 	$(MAKE) run-batch
 
 # ===============================

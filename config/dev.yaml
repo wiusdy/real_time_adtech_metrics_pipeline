@@ -1,14 +1,14 @@
 env: dev
 
+app_name: local-pipeline
+
 kafka:
-  bootstrap_servers: "localhost:9092"
-  topic: "events"
+  bootstrap_servers: localhost:9092
+  topic: events
 
 paths:
-  bronze: ""
-  silver: "s3a://silver/events/"
-  gold: "s3a://gold/results/"
-  checkpoint: "/tmp/checkpoint"
+  silver: s3a://silver/events/
+  gold: s3a://gold/aggregated/
 
 streaming:
   watermark: "1 minute"

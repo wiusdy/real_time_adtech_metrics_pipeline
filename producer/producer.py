@@ -1,30 +1,18 @@
 import json
 import random
 import time
-from datetime import datetime
 
 from kafka import KafkaProducer
 
+producer = KafkaProducer(
+    bootstrap_servers="localhost:9092",
+    value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+)
 
-class Producer:
-    def __init__(self, config, kafka_producer=None):
-        self.config = config
-        self.producer = kafka_producer or KafkaProducer(
-            bootstrap_servers=config.kafka.bootstrap_servers,
-            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-        )
+while True:
+    event = {"user_id": random.randint(1, 10), "value": random.random()}
 
-    def generate_event(self):
-        return {
-            "timestamp": datetime.utcnow().isoformat(),
-            "campaign_id": random.randint(1, 10),
-            "event_type": random.choice(["click", "impression"]),
-            "price": round(random.random() * 10, 2),
-        }
+    producer.send("events", event)
+    print("Sent:", event)
 
-    def run(self):
-        while True:
-            event = self.generate_event()
-            self.producer.send(self.config.kafka.topic, event)
-            print(f"Sent: {event}")
-            time.sleep(1)
+    time.sleep(1)

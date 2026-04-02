@@ -1,34 +1,26 @@
 import yaml
 from pyspark.sql.functions import col, from_json
-from pyspark.sql.types import DoubleType, IntegerType, StringType, StructType
+from pyspark.sql.types import DoubleType, IntegerType, StructType
 
-from common.config import AppConfig
 from common.spark import create_spark
 
 
-def load_config(path):
-    with open(path) as f:
-        return AppConfig(**yaml.safe_load(f))
-
-
 class StreamingJob:
-    def __init__(self, config):
-        self.config = config
-        self.spark = create_spark(config.spark.app_name, config.minio)
+    def __init__(self, config_path: str):
+        with open(config_path) as f:
+            self.config = yaml.safe_load(f)
+
+        self.spark = create_spark("streaming-job")
 
     def run(self):
-        schema = (
-            StructType()
-            .add("timestamp", StringType())
-            .add("campaign_id", IntegerType())
-            .add("event_type", StringType())
-            .add("price", DoubleType())
-        )
+        schema = StructType().add("user_id", IntegerType()).add("value", DoubleType())
 
         df = (
             self.spark.readStream.format("kafka")
-            .option("kafka.bootstrap.servers", self.config.kafka.bootstrap_servers)
-            .option("subscribe", self.config.kafka.topic)
+            .option(
+                "kafka.bootstrap.servers", self.config["kafka"]["bootstrap_servers"]
+            )
+            .option("subscribe", self.config["kafka"]["topic"])
             .load()
         )
 
@@ -38,16 +30,16 @@ class StreamingJob:
             .select("data.*")
         )
 
-        (
+        query = (
             parsed.writeStream.format("parquet")
-            .option("path", self.config.paths.silver)
-            .option("checkpointLocation", self.config.spark.checkpoint)
+            .option("path", self.config["paths"]["silver"])
+            .option("checkpointLocation", "checkpoint/")
             .outputMode("append")
             .start()
-            .awaitTermination()
         )
+
+        query.awaitTermination()
 
 
 if __name__ == "__main__":
-    config = load_config("config/dev.yaml")
-    StreamingJob(config).run()
+    StreamingJob("config/dev.yaml").run()
