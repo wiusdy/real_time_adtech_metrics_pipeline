@@ -103,7 +103,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "deploy/deploy.sh"
-          target: "~/ml-pipeline/deploy.sh"
+          target: "~/ml-pipeline"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.9
