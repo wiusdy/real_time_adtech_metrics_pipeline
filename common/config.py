@@ -14,6 +14,7 @@ class PathsConfig(BaseModel):
 
 
 class SparkConfig(BaseModel):
+    app_name: str
     checkpoint: str
 
 
