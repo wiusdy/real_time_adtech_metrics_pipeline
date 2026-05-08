@@ -1,7 +1,7 @@
 import argparse
 
-from streaming.streaming_job import StreamingJob
 from batch.batch_job import BatchJob
+from streaming.streaming_job import StreamingJob
 
 
 def main():

@@ -28,7 +28,3 @@ def test_generate_event_value_range(mock_kafka_producer):
         event = producer.generate_event()
         assert 1 <= event["user_id"] <= 100
         assert 0.1 <= event["value"] <= 50.0
-
-    result = aggregate_events(df)
-
-    assert result is not None

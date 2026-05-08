@@ -1,4 +1,4 @@
-from pyspark.sql.functions import to_timestamp, window, avg, count, col
+from pyspark.sql.functions import avg, col, count, to_timestamp, window
 
 
 def aggregate_events(df, watermark="1 minute", window_duration="1 minute"):

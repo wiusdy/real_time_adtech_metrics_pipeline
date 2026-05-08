@@ -20,7 +20,8 @@ from awsglue.dynamicframe import DynamicFrame
 from awsglue.job import Job
 from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
-from pyspark.sql.functions import avg, col, sum as spark_sum
+from pyspark.sql.functions import avg
+from pyspark.sql.functions import sum as spark_sum
 
 # ===========================
 # Job Parameters
