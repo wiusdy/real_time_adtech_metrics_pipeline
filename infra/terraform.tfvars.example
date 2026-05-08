@@ -1,0 +1,12 @@
+aws_region              = "us-east-1"
+environment             = "dev"
+project_name            = "adtech-pipeline"
+glue_scripts_bucket     = "adtech-glue-scripts-dev"
+silver_bucket           = "adtech-silver-dev"
+gold_bucket             = "adtech-gold-dev"
+kafka_bootstrap_servers = "b-1.msk-cluster.abc123.kafka.us-east-1.amazonaws.com:9092"
+kafka_topic             = "ad-events"
+streaming_window        = "5 minutes"
+streaming_watermark     = "10 minutes"
+glue_worker_type        = "G.1X"
+glue_num_workers        = 2

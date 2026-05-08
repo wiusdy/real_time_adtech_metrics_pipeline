@@ -1,23 +1,23 @@
-env: dev
+env: docker
 app_name: adtech-pipeline
 
 kafka:
-  bootstrap_servers: localhost:9092
+  bootstrap_servers: kafka:29092
   topic: ad-events
 
 paths:
   silver: s3a://silver/events/
   gold: s3a://gold/aggregated/
-  checkpoint: /tmp/checkpoint
+  checkpoint: s3a://silver/checkpoints/
 
 streaming:
-  watermark: "1 minute"
-  window: "1 minute"
+  watermark: "10 minutes"
+  window: "5 minutes"
 
 spark:
   app_name: "adtech-pipeline"
 
 minio:
-  endpoint: "http://localhost:9000"
+  endpoint: "http://minio:9000"
   access_key: "minioadmin"
   secret_key: "minioadmin"

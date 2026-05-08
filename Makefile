@@ -2,10 +2,10 @@
 # VARIABLES
 # ===============================
 
-PYTHON=python3.11
-CONFIG=config/dev.yaml
-DOCKER_IMAGE=ml-pipeline
-DOCKER_TAG=latest
+PYTHON = python3.11
+CONFIG = config/dev.yaml
+ENV ?= dev
+GLUE_SCRIPTS_BUCKET ?= adtech-glue-scripts-$(ENV)
 
 # ===============================
 # SETUP
@@ -13,7 +13,7 @@ DOCKER_TAG=latest
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
-	pip install .[streaming,batch,dashboard,dev]
+	pip install -e .[streaming,batch,dashboard,dev]
 	pre-commit install
 
 # ===============================
@@ -24,7 +24,6 @@ format:
 	black .
 	isort .
 	ruff check . --fix
-	pre-commit run --all-files
 
 lint:
 	black --check .
@@ -36,53 +35,83 @@ lint:
 # ===============================
 
 test:
-	pytest || true
+	PYTHONPATH=. pytest
 
 # ===============================
 # LOCAL RUN
 # ===============================
 
-up:
-	docker-compose up -d
-
-down:
-	docker-compose down
-
 producer:
-	python3.11 producer.py
+	PYTHONPATH=. $(PYTHON) -m producer.producer
 
 run-streaming:
-	PYTHONPATH=. python3.11 -m streaming.streaming_job
+	PYTHONPATH=. $(PYTHON) -m streaming.streaming_job
 
 run-batch:
-	PYTHONPATH=. python3.11 -m batch.batch_job
-
-run-batch:
-	python3.11 batch/batch_job.py --config config/dev.yaml
+	PYTHONPATH=. $(PYTHON) -m batch.batch_job
 
 run-pipeline:
-	$(MAKE) run-streaming
+	PYTHONPATH=. $(PYTHON) run_pipeline.py --mode streaming &
 	sleep 5
-	$(MAKE) run-batch
+	PYTHONPATH=. $(PYTHON) run_pipeline.py --mode batch
+
+dashboard:
+	PYTHONPATH=. streamlit run dashboard/app.py
 
 # ===============================
 # DOCKER
 # ===============================
 
-docker-build:
-	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+up:
+	docker compose up -d
 
-docker-run:
-	docker run -it $(DOCKER_IMAGE):$(DOCKER_TAG)
+down:
+	docker compose down
 
-docker-compose-up:
-	docker-compose up -d
+build:
+	docker compose build
 
-docker-compose-down:
-	docker-compose down
+logs:
+	docker compose logs -f
 
-docker-logs:
-	docker-compose logs -f
+restart:
+	docker compose down && docker compose up -d --build
+
+# ===============================
+# AWS GLUE
+# ===============================
+
+glue-upload:
+	aws s3 cp glue/streaming_job.py s3://$(GLUE_SCRIPTS_BUCKET)/glue/scripts/streaming_job.py
+	aws s3 cp glue/batch_job.py s3://$(GLUE_SCRIPTS_BUCKET)/glue/scripts/batch_job.py
+
+glue-start-streaming:
+	aws glue start-job-run --job-name adtech-pipeline-streaming-$(ENV)
+
+glue-start-batch:
+	aws glue start-job-run --job-name adtech-pipeline-batch-$(ENV)
+
+glue-status:
+	@echo "=== Streaming Job ==="
+	aws glue get-job-runs --job-name adtech-pipeline-streaming-$(ENV) --max-items 3
+	@echo "=== Batch Job ==="
+	aws glue get-job-runs --job-name adtech-pipeline-batch-$(ENV) --max-items 3
+
+# ===============================
+# TERRAFORM (INFRA)
+# ===============================
+
+infra-init:
+	cd infra && terraform init
+
+infra-plan:
+	cd infra && terraform plan -var-file=terraform.tfvars
+
+infra-apply:
+	cd infra && terraform apply -var-file=terraform.tfvars
+
+infra-destroy:
+	cd infra && terraform destroy -var-file=terraform.tfvars
 
 # ===============================
 # CLEAN

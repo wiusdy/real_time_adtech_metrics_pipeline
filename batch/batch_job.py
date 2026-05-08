@@ -1,25 +1,39 @@
-import yaml
-from pyspark.sql.functions import avg
+import time
 
-from common.spark import create_spark
+from core.config import settings
+from core.logger import get_logger
+from core.metrics import BATCH_JOB_DURATION
+from core.spark import create_spark_session
+
+logger = get_logger(__name__)
 
 
 class BatchJob:
-    def __init__(self, config_path: str):
-        with open(config_path) as f:
-            self.config = yaml.safe_load(f)
 
-        self.spark = create_spark("batch-job")
+    def __init__(self):
+        self.spark = create_spark_session(f"{settings.spark.app_name}-batch")
 
     def run(self):
-        df = self.spark.read.parquet(self.config["paths"]["silver"])
+        logger.info("Running batch aggregation (silver -> gold)...")
+        start = time.perf_counter()
 
-        result = df.groupBy("user_id").agg(avg("value").alias("avg_value"))
+        df = self.spark.read.parquet(settings.paths.silver)
 
-        result.write.mode("overwrite").parquet(self.config["paths"]["gold"])
+        result = (
+            df.groupBy("user_id")
+            .agg({"avg_value": "avg", "event_count": "sum"})
+            .withColumnRenamed("avg(avg_value)", "total_revenue")
+            .withColumnRenamed("sum(event_count)", "total_events")
+        )
 
-        print("Batch job finished")
+        result.write.mode("overwrite").parquet(settings.paths.gold)
+
+        duration = time.perf_counter() - start
+        BATCH_JOB_DURATION.observe(duration)
+        logger.info(
+            f"Batch job finished in {duration:.2f}s. Output: {settings.paths.gold}"
+        )
 
 
 if __name__ == "__main__":
-    BatchJob("config/dev.yaml").run()
+    BatchJob().run()
