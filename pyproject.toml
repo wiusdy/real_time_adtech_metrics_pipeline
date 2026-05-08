@@ -19,7 +19,7 @@ include = ["batch*", "core*", "glue*", "producer*", "streaming*", "dashboard*", 
 
 streaming = [
     "pyspark>=3.5",
-    "kafka-python>=2.0",
+    "kafka-python-ng>=2.2",
 ]
 
 batch = [
@@ -27,7 +27,7 @@ batch = [
 ]
 
 producer = [
-    "kafka-python>=2.0",
+    "kafka-python-ng>=2.2",
 ]
 
 dashboard = [
@@ -38,7 +38,7 @@ dashboard = [
 api = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
-    "kafka-python>=2.0",
+    "kafka-python-ng>=2.2",
 ]
 
 dev = [
