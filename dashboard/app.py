@@ -7,9 +7,9 @@ from core.config import settings
 class Dashboard:
 
     def __init__(self):
-        self.spark = SparkSession.builder \
-            .appName(f"{settings.spark.app_name}-dashboard") \
-            .getOrCreate()
+        self.spark = SparkSession.builder.appName(
+            f"{settings.spark.app_name}-dashboard"
+        ).getOrCreate()
 
     def load_data(self):
         df = self.spark.read.parquet(settings.paths.gold)

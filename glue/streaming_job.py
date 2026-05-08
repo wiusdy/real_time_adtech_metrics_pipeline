@@ -34,15 +34,18 @@ from pyspark.sql.types import (
 # Job Parameters
 # ===========================
 
-args = getResolvedOptions(sys.argv, [
-    "JOB_NAME",
-    "KAFKA_BOOTSTRAP_SERVERS",
-    "KAFKA_TOPIC",
-    "OUTPUT_PATH",
-    "CHECKPOINT_PATH",
-    "WINDOW_DURATION",
-    "WATERMARK",
-])
+args = getResolvedOptions(
+    sys.argv,
+    [
+        "JOB_NAME",
+        "KAFKA_BOOTSTRAP_SERVERS",
+        "KAFKA_TOPIC",
+        "OUTPUT_PATH",
+        "CHECKPOINT_PATH",
+        "WINDOW_DURATION",
+        "WATERMARK",
+    ],
+)
 
 # ===========================
 # Glue Context
@@ -60,55 +63,61 @@ spark.sparkContext.setLogLevel("WARN")
 # Schema
 # ===========================
 
-EVENT_SCHEMA = StructType([
-    StructField("user_id", IntegerType()),
-    StructField("value", DoubleType()),
-    StructField("timestamp", TimestampType()),
-])
+EVENT_SCHEMA = StructType(
+    [
+        StructField("user_id", IntegerType()),
+        StructField("value", DoubleType()),
+        StructField("timestamp", TimestampType()),
+    ]
+)
 
 # ===========================
 # Read Stream from Kafka
 # ===========================
 
-raw_df = spark.readStream \
-    .format("kafka") \
-    .option("kafka.bootstrap.servers", args["KAFKA_BOOTSTRAP_SERVERS"]) \
-    .option("subscribe", args["KAFKA_TOPIC"]) \
-    .option("startingOffsets", "latest") \
+raw_df = (
+    spark.readStream.format("kafka")
+    .option("kafka.bootstrap.servers", args["KAFKA_BOOTSTRAP_SERVERS"])
+    .option("subscribe", args["KAFKA_TOPIC"])
+    .option("startingOffsets", "latest")
     .load()
+)
 
 # ===========================
 # Parse & Aggregate
 # ===========================
 
-parsed_df = raw_df \
-    .selectExpr("CAST(value AS STRING)") \
-    .select(from_json(col("value"), EVENT_SCHEMA).alias("data")) \
+parsed_df = (
+    raw_df.selectExpr("CAST(value AS STRING)")
+    .select(from_json(col("value"), EVENT_SCHEMA).alias("data"))
     .select("data.*")
+)
 
 parsed_df = parsed_df.withColumn("timestamp", to_timestamp(col("timestamp")))
 
-aggregated_df = parsed_df \
-    .withWatermark("timestamp", args["WATERMARK"]) \
+aggregated_df = (
+    parsed_df.withWatermark("timestamp", args["WATERMARK"])
     .groupBy(
         window(col("timestamp"), args["WINDOW_DURATION"]),
         col("user_id"),
-    ) \
+    )
     .agg(
         avg("value").alias("avg_value"),
         count("*").alias("event_count"),
     )
+)
 
 # ===========================
 # Write to S3 (Silver Layer)
 # ===========================
 
-query = aggregated_df.writeStream \
-    .format("parquet") \
-    .option("path", args["OUTPUT_PATH"]) \
-    .option("checkpointLocation", args["CHECKPOINT_PATH"]) \
-    .outputMode("append") \
+query = (
+    aggregated_df.writeStream.format("parquet")
+    .option("path", args["OUTPUT_PATH"])
+    .option("checkpointLocation", args["CHECKPOINT_PATH"])
+    .outputMode("append")
     .start()
+)
 
 query.awaitTermination()
 

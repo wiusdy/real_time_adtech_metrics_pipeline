@@ -26,13 +26,16 @@ from pyspark.sql.functions import avg, col, sum as spark_sum
 # Job Parameters
 # ===========================
 
-args = getResolvedOptions(sys.argv, [
-    "JOB_NAME",
-    "SILVER_PATH",
-    "GOLD_PATH",
-    "GLUE_DATABASE",
-    "GLUE_TABLE",
-])
+args = getResolvedOptions(
+    sys.argv,
+    [
+        "JOB_NAME",
+        "SILVER_PATH",
+        "GOLD_PATH",
+        "GLUE_DATABASE",
+        "GLUE_TABLE",
+    ],
+)
 
 # ===========================
 # Glue Context

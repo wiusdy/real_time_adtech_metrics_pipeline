@@ -1,5 +1,11 @@
 from pyspark.sql.functions import col, from_json
-from pyspark.sql.types import DoubleType, IntegerType, StructField, StructType, TimestampType
+from pyspark.sql.types import (
+    DoubleType,
+    IntegerType,
+    StructField,
+    StructType,
+    TimestampType,
+)
 
 from core.config import settings
 from core.logger import get_logger
@@ -9,11 +15,13 @@ from streaming.processor import aggregate_events
 
 logger = get_logger(__name__)
 
-schema = StructType([
-    StructField("user_id", IntegerType()),
-    StructField("value", DoubleType()),
-    StructField("timestamp", TimestampType())
-])
+schema = StructType(
+    [
+        StructField("user_id", IntegerType()),
+        StructField("value", DoubleType()),
+        StructField("timestamp", TimestampType()),
+    ]
+)
 
 
 class StreamingJob:
@@ -23,22 +31,26 @@ class StreamingJob:
         self.spark.sparkContext.setLogLevel("WARN")
 
     def read_stream(self):
-        return self.spark.readStream \
-            .format("kafka") \
-            .option("kafka.bootstrap.servers", settings.kafka.bootstrap_servers) \
-            .option("subscribe", settings.kafka.topic) \
+        return (
+            self.spark.readStream.format("kafka")
+            .option("kafka.bootstrap.servers", settings.kafka.bootstrap_servers)
+            .option("subscribe", settings.kafka.topic)
             .load()
+        )
 
     def parse(self, df):
-        return df.selectExpr("CAST(value AS STRING)") \
-            .select(from_json(col("value"), schema).alias("data")) \
+        return (
+            df.selectExpr("CAST(value AS STRING)")
+            .select(from_json(col("value"), schema).alias("data"))
             .select("data.*")
+        )
 
     def write(self, df):
-        return df.writeStream \
-            .foreachBatch(self._on_batch) \
-            .option("checkpointLocation", settings.paths.checkpoint) \
+        return (
+            df.writeStream.foreachBatch(self._on_batch)
+            .option("checkpointLocation", settings.paths.checkpoint)
             .start()
+        )
 
     def _on_batch(self, batch_df, batch_id):
         import time
