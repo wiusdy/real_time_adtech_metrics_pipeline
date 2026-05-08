@@ -2,7 +2,7 @@ env: docker
 app_name: adtech-pipeline
 
 kafka:
-  bootstrap_servers: kafka:9092
+  bootstrap_servers: kafka:29092
   topic: ad-events
 
 paths:

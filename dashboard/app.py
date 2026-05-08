@@ -52,8 +52,3 @@ class Dashboard:
 
 if __name__ == "__main__":
     Dashboard().run()
-
-    config = AppConfig.from_yaml(args.config)
-
-    dashboard = Dashboard(config)
-    dashboard.run()

@@ -1,76 +1,76 @@
 # CONTRIBUTING.md
 
-Guia para configurar e executar o pipeline localmente.
+Guide to set up and run the pipeline locally.
 
-## Pré-requisitos
+## Prerequisites
 
-| Ferramenta | Versão mínima | Instalação |
-|-----------|---------------|------------|
+| Tool | Minimum Version | Installation |
+|------|-----------------|--------------|
 | Docker Desktop | 4.x | [docker.com](https://www.docker.com/products/docker-desktop/) |
 | Python | 3.11+ | `brew install python@3.11` |
-| Java | 11+ | `brew install openjdk@11` (necessário para PySpark local) |
-| Make | qualquer | já vem no macOS |
+| Java | 11+ | `brew install openjdk@11` (required for local PySpark) |
+| Make | any | pre-installed on macOS |
 
-## 1. Clonar o repositório
+## 1. Clone the repository
 
 ```bash
-git clone git@github.com:<seu-org>/real_time_adtech_metrics_pipeline.git
+git clone git@github.com:<your-org>/real_time_adtech_metrics_pipeline.git
 cd real_time_adtech_metrics_pipeline
 ```
 
-## 2. Executar com Docker (recomendado)
+## 2. Running with Docker (recommended)
 
-Este é o caminho mais rápido — sobe toda a infraestrutura + aplicação.
+This is the fastest path — brings up the entire infrastructure + application.
 
-### 2.1 Abrir Docker Desktop
+### 2.1 Open Docker Desktop
 
-Certifique-se de que o Docker Desktop está **aberto e rodando** (ícone da baleia estável na barra de menu).
+Make sure Docker Desktop is **open and running** (stable whale icon in the menu bar).
 
-Verifique com:
+Verify with:
 
 ```bash
 docker info
 ```
 
-Se retornar erro, o Docker não está pronto ainda.
+If it returns an error, Docker is not ready yet.
 
-### 2.2 Subir a stack
+### 2.2 Start the stack
 
 ```bash
 make up
 ```
 
-Isso sobe:
-- **Zookeeper** — coordenação do Kafka
-- **Kafka** — message broker (porta 9092)
-- **MinIO** — storage S3-compatible (console na porta 9001)
-- **Producer** — gera eventos fake a cada 1s
-- **Streaming** — consome Kafka e escreve Parquet no MinIO (silver)
-- **API** — FastAPI com health check (porta 8000)
+This starts:
+- **Zookeeper** — Kafka coordination
+- **Kafka** — message broker (port 9092)
+- **MinIO** — S3-compatible storage (console on port 9001)
+- **Producer** — generates fake events every 1s
+- **Streaming** — consumes Kafka and writes Parquet to MinIO (silver)
+- **API** — FastAPI with health check (port 8000)
 
-### 2.3 Verificar se tudo subiu
+### 2.3 Verify all services are up
 
 ```bash
 docker compose ps
 ```
 
-Todos os serviços devem estar com status `Up` ou `running (healthy)`.
+All services should show status `Up` or `running (healthy)`.
 
-> **Tempo de boot:** ~30-60s na primeira vez (download de imagens + health checks).
+> **Boot time:** ~30-60s on first run (image downloads + health checks).
 
-### 2.4 Validações
+### 2.4 Validation
 
 ```bash
-# Health check completo (verifica Kafka + MinIO)
+# Full health check (verifies Kafka + MinIO connectivity)
 curl http://localhost:8000/health
 
-# Resposta esperada:
+# Expected response:
 # {"status":"healthy","env":"docker","version":"0.1.0","checks":{"kafka":{"status":"ok"},"minio":{"status":"ok"}}}
 
-# Métricas Prometheus
+# Prometheus metrics
 curl http://localhost:8000/metrics
 
-# Ver eventos no Kafka
+# View events in Kafka
 docker compose exec kafka kafka-console-consumer \
   --bootstrap-server localhost:9092 \
   --topic ad-events \
@@ -78,67 +78,67 @@ docker compose exec kafka kafka-console-consumer \
   --max-messages 5
 ```
 
-### 2.5 Acessar MinIO Console
+### 2.5 Access MinIO Console
 
 - URL: http://localhost:9001
-- Login: `minioadmin`
-- Senha: `minioadmin`
+- Username: `minioadmin`
+- Password: `minioadmin`
 
-Verifique os buckets `silver/` e `gold/` — o streaming deve gerar arquivos Parquet em `silver/`.
+Check the `silver/` and `gold/` buckets — streaming should generate Parquet files in `silver/`.
 
-### 2.6 Executar batch manualmente
+### 2.6 Run batch manually
 
 ```bash
 docker compose exec streaming python -m batch.batch_job
 ```
 
-Isso lê a silver layer e escreve o resultado agregado na gold layer.
+This reads the silver layer and writes the aggregated result to the gold layer.
 
-### 2.7 Ver logs
+### 2.7 View logs
 
 ```bash
-# Todos os serviços
+# All services
 make logs
 
-# Serviço específico
+# Specific service
 docker compose logs -f producer
 docker compose logs -f streaming
 docker compose logs -f api
 ```
 
-### 2.8 Parar tudo
+### 2.8 Stop everything
 
 ```bash
 make down
 ```
 
-## 3. Executar sem Docker (desenvolvimento local)
+## 3. Running without Docker (local development)
 
-Para desenvolver/debugar componentes individuais.
+For developing/debugging individual components.
 
-### 3.1 Instalar dependências
+### 3.1 Install dependencies
 
 ```bash
 make install
 ```
 
-Isso instala todas as dependências (streaming, batch, dashboard, dev tools).
+This installs all dependencies (streaming, batch, dashboard, dev tools).
 
-### 3.2 Subir apenas a infraestrutura
+### 3.2 Start infrastructure only
 
 ```bash
 docker compose up -d zookeeper kafka minio minio-init
 ```
 
-Espere ~20s para os health checks passarem.
+Wait ~20s for the health checks to pass.
 
-### 3.3 Rodar componentes individuais
+### 3.3 Run individual components
 
 ```bash
-# Producer (gera eventos no Kafka local)
+# Producer (generates events to local Kafka)
 make producer
 
-# Streaming job (consome Kafka → escreve Parquet)
+# Streaming job (consumes Kafka → writes Parquet)
 make run-streaming
 
 # Batch job (silver → gold)
@@ -151,86 +151,85 @@ make dashboard
 PYTHONPATH=. uvicorn api.main:app --reload --port 8000
 ```
 
-### 3.4 Rodar testes
+### 3.4 Run tests
 
 ```bash
 make test
 ```
 
-### 3.5 Lint e formatação
+### 3.5 Lint and formatting
 
 ```bash
 make format   # auto-fix (black + isort + ruff)
 make lint     # check only
 ```
 
-## 4. Portas utilizadas
+## 4. Ports
 
-| Serviço | Porta | Descrição |
-|---------|-------|-----------|
-| Kafka | 9092 | Broker (acesso externo) |
-| Kafka (interno) | 29092 | Comunicação entre containers |
+| Service | Port | Description |
+|---------|------|-------------|
+| Kafka | 9092 | Broker (external access) |
+| Kafka (internal) | 29092 | Inter-container communication |
 | MinIO API | 9000 | S3 API |
 | MinIO Console | 9001 | Web UI |
-| Zookeeper | 2181 | Coordenação Kafka |
+| Zookeeper | 2181 | Kafka coordination |
 | API (FastAPI) | 8000 | Health + Config + Metrics |
 | Producer metrics | 9091 | Prometheus endpoint |
 | Streaming metrics | 9093 | Prometheus endpoint |
 
 ## 5. Troubleshooting
 
-### Docker não conecta
+### Docker won't connect
 
 ```
 Cannot connect to the Docker daemon
 ```
 
-→ Abra o Docker Desktop e espere o ícone estabilizar.
+→ Open Docker Desktop and wait for the icon to stabilize.
 
-### Kafka não está ready
+### Kafka not ready
 
 ```
 kafka  | ... broker not available
 ```
 
-→ Espere ~30s. O Kafka depende do Zookeeper estar healthy primeiro.
+→ Wait ~30s. Kafka depends on Zookeeper being healthy first.
 
-### Streaming reiniciando em loop
+### Streaming restarting in a loop
 
-Verifique se o Kafka e MinIO estão healthy:
+Check if Kafka and MinIO are healthy:
 
 ```bash
 docker compose ps
 docker compose logs streaming --tail 20
 ```
 
-### Porta já em uso
+### Port already in use
 
 ```bash
-# Descubra o que está usando a porta
+# Find what's using the port
 lsof -i :8000
 
-# Mate o processo ou mude a porta no docker-compose.yml
+# Kill the process or change the port in docker-compose.yml
 ```
 
-### Limpar tudo (reset completo)
+### Full reset
 
 ```bash
-docker compose down -v   # remove volumes (dados do Kafka/MinIO)
-docker system prune -f   # limpa imagens/containers órfãos
-make up                  # sobe limpo
+docker compose down -v   # removes volumes (Kafka/MinIO data)
+docker system prune -f   # cleans orphan images/containers
+make up                  # start fresh
 ```
 
-## 6. Fluxo de dados
+## 6. Data flow
 
 ```
 Producer → Kafka (ad-events) → Streaming Job → MinIO (silver/) → Batch Job → MinIO (gold/)
                                                                                     ↓
                                                                               Dashboard / API
 ```
+## 7. Configuration
 
-## 7. Estrutura de configuração
-
-- `config/dev.yaml` — usado localmente (Kafka em localhost)
-- `config/docker.yaml` — usado dentro dos containers (Kafka em `kafka:29092`)
-- Seleção via variável `CONFIG_PATH`
+- `config/dev.yaml` — used locally (Kafka on localhost)
+- `config/docker.yaml` — used inside containers (Kafka on `kafka:29092`)
+- Selected via the `CONFIG_PATH` environment variable

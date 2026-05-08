@@ -4,6 +4,8 @@
 
 PYTHON = python3.11
 CONFIG = config/dev.yaml
+ENV ?= dev
+GLUE_SCRIPTS_BUCKET ?= adtech-glue-scripts-$(ENV)
 
 # ===============================
 # SETUP
@@ -110,9 +112,6 @@ infra-apply:
 
 infra-destroy:
 	cd infra && terraform destroy -var-file=terraform.tfvars
-
-docker-logs:
-	docker-compose logs -f
 
 # ===============================
 # CLEAN

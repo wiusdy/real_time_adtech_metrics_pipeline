@@ -1,10 +1,10 @@
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_json
 from pyspark.sql.types import DoubleType, IntegerType, StructField, StructType, TimestampType
 
 from core.config import settings
 from core.logger import get_logger
 from core.metrics import EVENTS_CONSUMED, STREAMING_BATCH_DURATION, start_metrics_server
+from core.spark import create_spark_session
 from streaming.processor import aggregate_events
 
 logger = get_logger(__name__)
@@ -19,10 +19,7 @@ schema = StructType([
 class StreamingJob:
 
     def __init__(self):
-        self.spark = SparkSession.builder \
-            .appName(settings.spark.app_name) \
-            .getOrCreate()
-
+        self.spark = create_spark_session(settings.spark.app_name)
         self.spark.sparkContext.setLogLevel("WARN")
 
     def read_stream(self):
@@ -39,11 +36,8 @@ class StreamingJob:
 
     def write(self, df):
         return df.writeStream \
-            .format("parquet") \
-            .option("path", settings.paths.silver) \
-            .option("checkpointLocation", settings.paths.checkpoint) \
-            .outputMode("append") \
             .foreachBatch(self._on_batch) \
+            .option("checkpointLocation", settings.paths.checkpoint) \
             .start()
 
     def _on_batch(self, batch_df, batch_id):
@@ -51,7 +45,8 @@ class StreamingJob:
 
         start = time.perf_counter()
         count = batch_df.count()
-        batch_df.write.mode("append").parquet(settings.paths.silver)
+        if count > 0:
+            batch_df.write.mode("append").parquet(settings.paths.silver)
         duration = time.perf_counter() - start
 
         EVENTS_CONSUMED.inc(count)

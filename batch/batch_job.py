@@ -1,10 +1,9 @@
 import time
 
-from pyspark.sql import SparkSession
-
 from core.config import settings
 from core.logger import get_logger
 from core.metrics import BATCH_JOB_DURATION
+from core.spark import create_spark_session
 
 logger = get_logger(__name__)
 
@@ -12,9 +11,7 @@ logger = get_logger(__name__)
 class BatchJob:
 
     def __init__(self):
-        self.spark = SparkSession.builder \
-            .appName(f"{settings.spark.app_name}-batch") \
-            .getOrCreate()
+        self.spark = create_spark_session(f"{settings.spark.app_name}-batch")
 
     def run(self):
         logger.info("Running batch aggregation (silver -> gold)...")

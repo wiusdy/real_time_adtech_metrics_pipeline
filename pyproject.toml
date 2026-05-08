@@ -38,6 +38,7 @@ dashboard = [
 api = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
+    "kafka-python>=2.0",
 ]
 
 dev = [

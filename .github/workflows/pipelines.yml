@@ -20,6 +20,11 @@ jobs:
       # -------------------------
       # Python setup
       # -------------------------
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "11"
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -38,6 +43,7 @@ jobs:
       - name: Lint + Test
         run: |
           black --check .
+          isort --check-only .
           ruff check .
           pytest
 
