@@ -1,15 +1,16 @@
 import argparse
-from streaming.job import StreamingJob
-from batch.job import BatchJob
+
+from streaming.streaming_job import StreamingJob
+from batch.batch_job import BatchJob
+
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Run AdTech pipeline jobs")
     parser.add_argument("--mode", required=True, choices=["streaming", "batch"])
     args = parser.parse_args()
 
     if args.mode == "streaming":
         StreamingJob().run()
-
     elif args.mode == "batch":
         BatchJob().run()
 

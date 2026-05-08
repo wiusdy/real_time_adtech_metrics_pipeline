@@ -1,21 +1,18 @@
-# Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# dependências do sistema
 RUN apt-get update && apt-get install -y \
     default-jdk \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# instalar pyspark + kafka
 COPY pyproject.toml .
-RUN pip install --no-cache-dir pyspark kafka-python pyyaml
+RUN pip install --no-cache-dir .[streaming,producer,api]
 
-# copiar código
 COPY . .
 
 ENV PYTHONPATH=/app
+ENV CONFIG_PATH=config/docker.yaml
 
-CMD ["bash"]
+CMD ["python", "-m", "streaming.streaming_job"]

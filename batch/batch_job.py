@@ -1,24 +1,37 @@
+import time
+
 from pyspark.sql import SparkSession
+
 from core.config import settings
 from core.logger import get_logger
+from core.metrics import BATCH_JOB_DURATION
 
 logger = get_logger(__name__)
+
 
 class BatchJob:
 
     def __init__(self):
         self.spark = SparkSession.builder \
-            .appName("BatchPipeline") \
+            .appName(f"{settings.spark.app_name}-batch") \
             .getOrCreate()
 
     def run(self):
-        logger.info("Running batch job...")
+        logger.info("Running batch aggregation (silver -> gold)...")
+        start = time.perf_counter()
 
-        df = self.spark.read.parquet(settings.OUTPUT_PATH)
+        df = self.spark.read.parquet(settings.paths.silver)
 
-        result = df.groupBy("user_id").count()
+        result = df.groupBy("user_id").agg(
+            {"avg_value": "avg", "event_count": "sum"}
+        ).withColumnRenamed("avg(avg_value)", "total_revenue") \
+         .withColumnRenamed("sum(event_count)", "total_events")
 
-        result.show()
+        result.write.mode("overwrite").parquet(settings.paths.gold)
+
+        duration = time.perf_counter() - start
+        BATCH_JOB_DURATION.observe(duration)
+        logger.info(f"Batch job finished in {duration:.2f}s. Output: {settings.paths.gold}")
 
 
 if __name__ == "__main__":

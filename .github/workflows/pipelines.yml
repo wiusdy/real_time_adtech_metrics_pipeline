@@ -30,7 +30,7 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[streaming,batch,dashboard,dev]
+          pip install -e .[streaming,batch,producer,dashboard,api,dev]
 
       # -------------------------
       # Lint + Tests
@@ -103,7 +103,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "deploy/deploy.sh"
-          target: "~/ml-pipeline"
+          target: "~/adtech-pipeline"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.9
@@ -112,5 +112,5 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            chmod +x ~/ml-pipeline/deploy/deploy.sh
-            ~/ml-pipeline/deploy/deploy.sh ${{ github.sha }} ${{ secrets.ECR_REGISTRY }}
+            chmod +x ~/adtech-pipeline/deploy/deploy.sh
+            ~/adtech-pipeline/deploy/deploy.sh ${{ github.sha }} ${{ secrets.ECR_REGISTRY }}
