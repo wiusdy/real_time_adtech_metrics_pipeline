@@ -1,25 +1,25 @@
-import yaml
-from pyspark.sql.functions import avg
+from pyspark.sql import SparkSession
+from core.config import settings
+from core.logger import get_logger
 
-from common.spark import create_spark
-
+logger = get_logger(__name__)
 
 class BatchJob:
-    def __init__(self, config_path: str):
-        with open(config_path) as f:
-            self.config = yaml.safe_load(f)
 
-        self.spark = create_spark("batch-job")
+    def __init__(self):
+        self.spark = SparkSession.builder \
+            .appName("BatchPipeline") \
+            .getOrCreate()
 
     def run(self):
-        df = self.spark.read.parquet(self.config["paths"]["silver"])
+        logger.info("Running batch job...")
 
-        result = df.groupBy("user_id").agg(avg("value").alias("avg_value"))
+        df = self.spark.read.parquet(settings.OUTPUT_PATH)
 
-        result.write.mode("overwrite").parquet(self.config["paths"]["gold"])
+        result = df.groupBy("user_id").count()
 
-        print("Batch job finished")
+        result.show()
 
 
 if __name__ == "__main__":
-    BatchJob("config/dev.yaml").run()
+    BatchJob().run()

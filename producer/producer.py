@@ -2,37 +2,32 @@ import json
 import random
 import time
 from datetime import datetime
-
 from kafka import KafkaProducer
 
+from core.config import settings
 
-class Producer:
-    def __init__(self, bootstrap_servers="localhost:9092", topic="events"):
-        self.topic = topic
+class EventProducer:
+
+    def __init__(self):
         self.producer = KafkaProducer(
-            bootstrap_servers=bootstrap_servers,
+            bootstrap_servers=settings.KAFKA_BOOTSTRAP,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
         )
 
-    def send(self, event: dict):
-        self.producer.send(self.topic, event)
-        print("Sent:", event)
-
     def generate_event(self):
         return {
-            "user_id": 10,
+            "user_id": random.randint(1, 10),
             "value": random.random(),
-            "timestamp": datetime.utcnow().isoformat(),  # '2026-04-02T13:45:12.123456'
+            "timestamp": datetime.utcnow().isoformat()
         }
 
-    def run(self, interval=1):
+    def run(self):
         while True:
             event = self.generate_event()
-            self.send(event)
-            time.sleep(interval)
+            self.producer.send(settings.KAFKA_TOPIC, event)
+            print("Sent:", event)
+            time.sleep(1)
 
 
-# 👇 Permite rodar como script
 if __name__ == "__main__":
-    producer = Producer()
-    producer.run()
+    EventProducer().run()

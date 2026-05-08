@@ -1,45 +1,60 @@
-import yaml
+from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_json
-from pyspark.sql.types import DoubleType, IntegerType, StructType
+from pyspark.sql.types import *
 
-from common.spark import create_spark
+from core.config import settings
+from core.logger import get_logger
+from streaming.processor import aggregate_events
+
+logger = get_logger(__name__)
+
+schema = StructType([
+    StructField("user_id", IntegerType()),
+    StructField("value", DoubleType()),
+    StructField("timestamp", TimestampType())
+])
 
 
 class StreamingJob:
-    def __init__(self, config_path: str):
-        with open(config_path) as f:
-            self.config = yaml.safe_load(f)
 
-        self.spark = create_spark("streaming-job")
+    def __init__(self):
+        self.spark = SparkSession.builder \
+            .appName("StreamingPipeline") \
+            .getOrCreate()
+
+        self.spark.sparkContext.setLogLevel("WARN")
+
+    def read_stream(self):
+        return self.spark.readStream \
+            .format("kafka") \
+            .option("kafka.bootstrap.servers", settings.KAFKA_BOOTSTRAP) \
+            .option("subscribe", settings.KAFKA_TOPIC) \
+            .load()
+
+    def parse(self, df):
+        return df.selectExpr("CAST(value AS STRING)") \
+            .select(from_json(col("value"), schema).alias("data")) \
+            .select("data.*")
+
+    def write(self, df):
+        return df.writeStream \
+            .format("parquet") \
+            .option("path", settings.OUTPUT_PATH) \
+            .option("checkpointLocation", settings.CHECKPOINT_PATH) \
+            .outputMode("append") \
+            .start()
 
     def run(self):
-        schema = StructType().add("user_id", IntegerType()).add("value", DoubleType())
+        logger.info("Starting streaming job...")
 
-        df = (
-            self.spark.readStream.format("kafka")
-            .option(
-                "kafka.bootstrap.servers", self.config["kafka"]["bootstrap_servers"]
-            )
-            .option("subscribe", self.config["kafka"]["topic"])
-            .load()
-        )
+        raw_df = self.read_stream()
+        parsed_df = self.parse(raw_df)
+        aggregated_df = aggregate_events(parsed_df)
 
-        parsed = (
-            df.selectExpr("CAST(value AS STRING)")
-            .select(from_json(col("value"), schema).alias("data"))
-            .select("data.*")
-        )
-
-        query = (
-            parsed.writeStream.format("parquet")
-            .option("path", self.config["paths"]["silver"])
-            .option("checkpointLocation", "checkpoint/")
-            .outputMode("append")
-            .start()
-        )
+        query = self.write(aggregated_df)
 
         query.awaitTermination()
 
 
 if __name__ == "__main__":
-    StreamingJob("config/dev.yaml").run()
+    StreamingJob().run()
