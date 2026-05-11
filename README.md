@@ -1,8 +1,8 @@
 # Real-Time AdTech Metrics Pipeline
 
-Pipeline de métricas em tempo real para AdTech usando **Kafka**, **Spark Structured Streaming**, **MinIO** (S3-compatible) e **Streamlit**.
+Real-time metrics pipeline for AdTech using **Kafka**, **Spark Structured Streaming**, **MinIO** (S3-compatible) and **Streamlit**.
 
-## Arquitetura
+## Architecture
 
 ```
 ┌──────────┐     ┌───────┐     ┌────────────────────┐     ┌───────┐     ┌───────────┐
@@ -17,73 +17,73 @@ Pipeline de métricas em tempo real para AdTech usando **Kafka**, **Spark Struct
                                                      └──────────────────┘
 ```
 
-## Estrutura do Projeto
+## Project Structure
 
 ```
 .
-├── api/                  # FastAPI - health check e status
+├── api/                  # FastAPI - health check and status
 ├── batch/                # Spark batch job (silver → gold)
-├── config/               # Configurações YAML por ambiente
+├── config/               # YAML configuration per environment
 │   ├── dev.yaml
 │   └── docker.yaml
 ├── core/                 # Config loader (Pydantic) + logger + metrics
 ├── dashboard/            # Streamlit dashboard
-├── deploy/               # Script de deploy (ECR/Docker)
+├── deploy/               # Deploy script (ECR/Docker)
 ├── glue/                 # AWS Glue jobs (streaming + batch)
 ├── infra/                # Terraform (Glue, IAM, Data Catalog)
 ├── producer/             # Kafka event producer
 ├── streaming/            # Spark Structured Streaming job (local)
-├── tests/                # Testes unitários
-├── docker-compose.yml    # Stack completa (infra + app)
+├── tests/                # Unit tests
+├── docker-compose.yml    # Full stack (infra + app)
 ├── Dockerfile
-├── Makefile              # Comandos úteis
-└── pyproject.toml        # Dependências e tooling
+├── Makefile              # Useful commands
+└── pyproject.toml        # Dependencies and tooling
 ```
 
 ## Quick Start
 
-### Pré-requisitos
+### Prerequisites
 
 - Python 3.11+
 - Docker & Docker Compose
-- Java 11+ (para PySpark local)
+- Java 17+ (for local PySpark)
 
-### Rodando com Docker (recomendado)
+### Running with Docker (recommended)
 
 ```bash
-# Sobe toda a stack: Kafka, MinIO, Producer, Streaming, API
+# Start the full stack: Kafka, MinIO, Producer, Streaming, API
 make up
 
-# Ver logs
+# View logs
 make logs
 
-# Parar tudo
+# Stop everything
 make down
 ```
 
-### Desenvolvimento Local
+### Local Development
 
 ```bash
-# Instalar dependências
+# Install dependencies
 make install
 
-# Rodar producer (gera eventos no Kafka)
+# Run producer (generates events to Kafka)
 make producer
 
-# Rodar streaming job (consome Kafka → salva em Silver)
+# Run streaming job (consumes Kafka → writes to Silver)
 make run-streaming
 
-# Rodar batch job (Silver → Gold)
+# Run batch job (Silver → Gold)
 make run-batch
 
-# Rodar dashboard
+# Run dashboard
 make dashboard
 ```
 
-## Configuração
+## Configuration
 
-O projeto usa YAML + Pydantic para configuração tipada. O arquivo é selecionado via:
-- Variável de ambiente: `CONFIG_PATH=config/docker.yaml`
+The project uses YAML + Pydantic for typed configuration. The file is selected via:
+- Environment variable: `CONFIG_PATH=config/docker.yaml`
 - Default: `config/dev.yaml`
 
 ```yaml
@@ -101,13 +101,13 @@ streaming:
   window: "1 minute"
 ```
 
-## Pipeline de Dados
+## Data Pipeline
 
-| Camada  | Descrição                                      | Storage        |
+| Layer   | Description                                    | Storage        |
 |---------|------------------------------------------------|----------------|
-| Bronze  | Eventos raw do Kafka (JSON)                    | Kafka topic    |
-| Silver  | Eventos parseados + agregados por janela       | MinIO/Parquet  |
-| Gold    | Métricas por usuário (batch aggregation)       | MinIO/Parquet  |
+| Bronze  | Raw events from Kafka (JSON)                   | Kafka topic    |
+| Silver  | Parsed events + windowed aggregations          | MinIO/Parquet  |
+| Gold    | Per-user metrics (batch aggregation)           | MinIO/Parquet  |
 
 ## API
 
@@ -119,13 +119,13 @@ curl http://localhost:8000/health
 curl http://localhost:8000/config
 ```
 
-## Testes
+## Tests
 
 ```bash
 make test
 ```
 
-## Lint & Formato
+## Lint & Format
 
 ```bash
 make format   # auto-fix
@@ -134,25 +134,25 @@ make lint     # check only
 
 ## Tech Stack
 
-| Componente | Tecnologia              |
-|-----------|--------------------------|
-| Streaming | PySpark Structured Streaming |
-| Messaging | Apache Kafka             |
-| Storage   | MinIO (S3-compatible)    |
-| Batch     | PySpark                  |
-| API       | FastAPI                  |
-| Dashboard | Streamlit                |
-| Config    | Pydantic + YAML          |
-| CI/Lint   | Black, isort, Ruff       |
-| Cloud ETL | AWS Glue 4.0             |
-| IaC       | Terraform                |
-| Observability | Prometheus + JSON logs |
+| Component     | Technology                   |
+|---------------|------------------------------|
+| Streaming     | PySpark Structured Streaming |
+| Messaging     | Apache Kafka                 |
+| Storage       | MinIO (S3-compatible)        |
+| Batch         | PySpark                      |
+| API           | FastAPI                      |
+| Dashboard     | Streamlit                    |
+| Config        | Pydantic + YAML              |
+| CI/Lint       | Black, isort, Ruff           |
+| Cloud ETL     | AWS Glue 4.0                 |
+| IaC           | Terraform                    |
+| Observability | Prometheus + JSON logs       |
 
-## AWS Glue (Produção)
+## AWS Glue (Production)
 
-O diretório `glue/` contém os jobs prontos para deploy no AWS Glue, e `infra/` contém o Terraform para provisionar tudo.
+The `glue/` directory contains jobs ready to deploy on AWS Glue, and `infra/` contains the Terraform to provision everything.
 
-### Arquitetura AWS
+### AWS Architecture
 
 ```
 ┌──────────┐     ┌───────┐     ┌──────────────────┐     ┌────┐     ┌──────────────┐
@@ -167,42 +167,42 @@ O diretório `glue/` contém os jobs prontos para deploy no AWS Glue, e `infra/`
                                                                    └──────────────┘
 ```
 
-### Deploy da Infraestrutura
+### Infrastructure Deploy
 
 ```bash
-# Copiar e preencher variáveis
+# Copy and fill in variables
 cp infra/terraform.tfvars.example infra/terraform.tfvars
 
-# Provisionar
+# Provision
 make infra-init
 make infra-plan
 make infra-apply
 ```
 
-### Operações Glue
+### Glue Operations
 
 ```bash
-# Upload de scripts para S3
+# Upload scripts to S3
 make glue-upload GLUE_SCRIPTS_BUCKET=adtech-glue-scripts-dev
 
-# Iniciar jobs
+# Start jobs
 make glue-start-streaming ENV=dev
 make glue-start-batch ENV=dev
 
-# Verificar status
+# Check status
 make glue-status ENV=dev
 ```
 
-### Parâmetros dos Jobs
+### Job Parameters
 
-| Job | Parâmetro | Descrição |
-|-----|-----------|-----------|
+| Job | Parameter | Description |
+|-----|-----------|-------------|
 | Streaming | `KAFKA_BOOTSTRAP_SERVERS` | MSK broker endpoint |
-| Streaming | `KAFKA_TOPIC` | Topic de eventos |
-| Streaming | `OUTPUT_PATH` | S3 path silver layer |
-| Streaming | `WINDOW_DURATION` | Janela de agregação |
-| Streaming | `WATERMARK` | Tolerância de atraso |
-| Batch | `SILVER_PATH` | S3 path silver layer |
-| Batch | `GOLD_PATH` | S3 path gold layer |
-| Batch | `GLUE_DATABASE` | Database no Data Catalog |
-| Batch | `GLUE_TABLE` | Tabela de output |
+| Streaming | `KAFKA_TOPIC` | Events topic |
+| Streaming | `OUTPUT_PATH` | S3 path for silver layer |
+| Streaming | `WINDOW_DURATION` | Aggregation window |
+| Streaming | `WATERMARK` | Late arrival tolerance |
+| Batch | `SILVER_PATH` | S3 path for silver layer |
+| Batch | `GOLD_PATH` | S3 path for gold layer |
+| Batch | `GLUE_DATABASE` | Data Catalog database |
+| Batch | `GLUE_TABLE` | Output table |
