@@ -11,8 +11,8 @@ paths:
   checkpoint: s3a://silver/checkpoints/
 
 streaming:
-  watermark: "10 minutes"
-  window: "5 minutes"
+  watermark: "30 seconds"
+  window: "30 seconds"
 
 spark:
   app_name: "adtech-pipeline"

@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
 
   # ===========================
@@ -6,47 +8,61 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
-    healthcheck:
-      test: echo ruok | nc localhost 2181 | grep imok
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    restart: unless-stopped
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
     depends_on:
-      zookeeper:
-        condition: service_healthy
+      - zookeeper
     ports:
       - "9092:9092"
+    restart: unless-stopped
     environment:
       KAFKA_BROKER_ID: 1
+
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+
       KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://localhost:9092
+
       KAFKA_LISTENERS: INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
     healthcheck:
-      test: kafka-topics --bootstrap-server localhost:9092 --list
-      interval: 10s
+      test: ["CMD-SHELL", "cub kafka-ready -b localhost:9092 1 20"]
+      interval: 15s
       timeout: 10s
       retries: 10
 
   minio:
     image: minio/minio
+    container_name: minio
     command: server /data --console-address ":9001"
+    restart: unless-stopped
+
     ports:
       - "9000:9000"
       - "9001:9001"
+
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
@@ -55,11 +71,15 @@ services:
 
   minio-init:
     image: minio/mc
+    container_name: minio-init
+
     depends_on:
       minio:
         condition: service_healthy
+
     entrypoint: >
       /bin/sh -c "
+      sleep 5;
       mc alias set local http://minio:9000 minioadmin minioadmin;
       mc mb --ignore-existing local/silver;
       mc mb --ignore-existing local/gold;
@@ -71,38 +91,67 @@ services:
   # ===========================
 
   producer:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: producer
+
     command: python -m producer.producer
+
     depends_on:
       kafka:
         condition: service_healthy
-    ports:
-      - "9091:9091"
+
     environment:
       CONFIG_PATH: config/docker.yaml
+
+    ports:
+      - "9091:9091"
+
     restart: on-failure
 
   streaming:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: streaming
+
     command: python -m streaming.streaming_job
+
     depends_on:
       kafka:
         condition: service_healthy
+
       minio-init:
         condition: service_completed_successfully
-    ports:
-      - "9093:9093"
+
     environment:
       CONFIG_PATH: config/docker.yaml
+
+    ports:
+      - "9093:9093"
+
     restart: on-failure
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: api
+
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
-    ports:
-      - "8000:8000"
-    environment:
-      CONFIG_PATH: config/docker.yaml
+
     depends_on:
       kafka:
         condition: service_healthy
+
+    environment:
+      CONFIG_PATH: config/docker.yaml
+
+    ports:
+      - "8000:8000"
+
+    restart: on-failure
