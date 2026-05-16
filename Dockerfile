@@ -5,9 +5,20 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     default-jdk \
     curl \
+    build-essential \
+    gcc \
+    g++ \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml .
+COPY README.md .
+
+COPY streaming ./streaming
+COPY batch ./batch
+COPY producer ./producer
+COPY api ./api
+
 RUN pip install --no-cache-dir .[streaming,batch,producer,api]
 
 COPY . .

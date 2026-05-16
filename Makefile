@@ -55,8 +55,8 @@ run-pipeline:
 	sleep 5
 	PYTHONPATH=. $(PYTHON) run_pipeline.py --mode batch
 
-dashboard:
-	PYTHONPATH=. streamlit run dashboard/app.py
+run-dashboard:
+	CONFIG_PATH=config/local.yaml python -m streamlit run dashboard/app.py
 
 # ===============================
 # DOCKER

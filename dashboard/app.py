@@ -1,25 +1,28 @@
 import streamlit as st
-from pyspark.sql import SparkSession
 
 from core.config import settings
+from core.spark import create_spark_session
 
 
 class Dashboard:
 
     def __init__(self):
-        self.spark = SparkSession.builder.appName(
-            f"{settings.spark.app_name}-dashboard"
-        ).getOrCreate()
+        self.spark = create_spark_session(f"{settings.spark.app_name}-dashboard")
 
     def load_data(self):
         df = self.spark.read.parquet(settings.paths.gold)
         return df.toPandas()
 
     def run(self):
-        st.set_page_config(page_title="AdTech Metrics", layout="wide")
+        st.set_page_config(
+            page_title="AdTech Metrics",
+            layout="wide",
+        )
+
         st.title("AdTech Real-Time Metrics Dashboard")
 
         st.sidebar.header("Controls")
+
         if st.sidebar.button("Refresh Data"):
             st.rerun()
 
@@ -34,8 +37,16 @@ class Dashboard:
             total_events = df["total_events"].sum()
 
             col1, col2 = st.columns(2)
-            col1.metric("Total Revenue", f"${total_revenue:.2f}")
-            col2.metric("Total Events", int(total_events))
+
+            col1.metric(
+                "Total Revenue",
+                f"${total_revenue:.2f}",
+            )
+
+            col2.metric(
+                "Total Events",
+                int(total_events),
+            )
 
             st.divider()
 
@@ -43,7 +54,12 @@ class Dashboard:
             st.dataframe(df)
 
             st.subheader("Top Users by Revenue")
-            df_sorted = df.sort_values("total_revenue", ascending=False)
+
+            df_sorted = df.sort_values(
+                "total_revenue",
+                ascending=False,
+            )
+
             st.bar_chart(df_sorted.set_index("user_id")["total_revenue"])
 
         except Exception as e:
